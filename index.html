@@ -73,9 +73,10 @@ li.name button.share{font-size:.95rem;color:var(--spruce);font-weight:600;border
 li.name button.share.alt{color:var(--muted)}
 li.name .btns{display:flex;gap:6px;flex-shrink:0}
 #linkFor{margin:0 0 6px;font-weight:600}
-.pricerow{display:flex;align-items:center;gap:10px;margin:0 0 24px}
-.pricerow label{font-weight:600;flex:1}
-.pricerow input{flex:0 0 110px;text-align:right}
+.pricelabel{display:block;font-weight:600;margin:0 0 8px}
+.pricerow{display:flex;align-items:center;gap:8px;margin:0 0 24px}
+.pricerow input{flex:1;text-align:right}
+.pricerow span{color:var(--muted)}
 .back .price{font-weight:700;color:var(--spruce);margin:2px 0 6px}
 #linkFallback{width:100%;margin-bottom:16px;font-size:.9rem}
 @media (prefers-reduced-motion:reduce){.tag{transition:none}}
@@ -94,9 +95,11 @@ li.name .btns{display:flex;gap:6px;flex-shrink:0}
   </div>
   <p class="err" id="setupErr"></p>
   <ul id="nameList"></ul>
+  <label class="pricelabel" for="priceMin">Budsjett for gaven (kr)</label>
   <div class="pricerow">
-    <label for="priceInput">Gaven skal koste ca. (kr)</label>
-    <input id="priceInput" type="number" inputmode="numeric" min="0" step="50" placeholder="Valgfritt">
+    <input id="priceMin" type="number" inputmode="numeric" min="0" step="50" placeholder="Fra" aria-label="Fra beløp">
+    <span>–</span>
+    <input id="priceMax" type="number" inputmode="numeric" min="0" step="50" placeholder="Til (valgfritt)" aria-label="Til beløp">
   </div>
   <button class="primary" id="drawBtn" disabled>Trekk navn</button>
   <p class="muted center" id="countHint">Legg til minst 3 personer.</p>
@@ -156,9 +159,15 @@ li.name .btns{display:flex;gap:6px;flex-shrink:0}
   const KEY='nissetrekning-v1';
   let state={names:['Inge','Linn','Stine','Per Helge','Solbjørg','Kevin','Laila Celine','Trine','Truls','Lars Christian'],pairs:null,seen:{}};
   try{const s=localStorage.getItem(KEY);if(s){const p=JSON.parse(s);if(p&&Array.isArray(p.names))state=p;}}catch(e){}
-  if(state.price===undefined)state.price=1000;
+  if(state.price===undefined)state.price='1000-1200';
   function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
-  function priceText(p){return p?`Budsjett: ca. ${Number(p).toLocaleString('nb-NO')} kr`:'';}
+  // Pris lagres som "1000" eller "1000-1200"
+  function priceText(p){
+    if(!p)return '';
+    const [a,b]=String(p).split('-').map(x=>Number(x).toLocaleString('nb-NO'));
+    return b?`Budsjett: ${a} – ${b} kr`:`Budsjett: ca. ${a} kr`;
+  }
+  function priceParts(p){const [a,b]=String(p||'').split('-');return {a:a||'',b:b||''};}
   function setPriceNote(p){const el=document.getElementById('priceNote');el.textContent=priceText(p);el.classList.toggle('hidden',!p);}
 
   const $=id=>document.getElementById(id);
@@ -174,9 +183,17 @@ li.name .btns{display:flex;gap:6px;flex-shrink:0}
     const ok=state.names.length>=3;
     $('drawBtn').disabled=!ok;
     $('countHint').textContent=ok?`${state.names.length} personer er med.`:`Legg til minst 3 personer.`;
-    $('priceInput').value=state.price||'';
+    const pp=priceParts(state.price);$('priceMin').value=pp.a;$('priceMax').value=pp.b;
   }
-  $('priceInput').addEventListener('input',()=>{const v=Math.round(Math.abs(+$('priceInput').value))||0;state.price=v||'';save();});
+  function readPrice(){
+    const n=id=>Math.round(Math.abs(+$(id).value))||0;
+    let a=n('priceMin'),b=n('priceMax');
+    if(!a&&b){a=b;b=0;}
+    if(a&&b&&b<a)[a,b]=[b,a];
+    state.price=a?(b&&b!==a?`${a}-${b}`:`${a}`):'';save();
+  }
+  $('priceMin').addEventListener('input',readPrice);
+  $('priceMax').addEventListener('input',readPrice);
   function addName(){
     const v=$('nameInput').value.trim();
     $('setupErr').textContent='';
@@ -273,7 +290,7 @@ li.name .btns{display:flex;gap:6px;flex-shrink:0}
     try{
       const p=new TextDecoder('utf-8',{fatal:true}).decode(new Uint8Array(out)).split('\n');
       if((p.length!==2&&p.length!==3)||!p[0]||!p[1])return null;
-      return {g:p[0],r:p[1],p:p.length===3&&/^\d+$/.test(p[2])?+p[2]:''};
+      return {g:p[0],r:p[1],p:p.length===3&&/^\d+(-\d+)?$/.test(p[2])?p[2]:''};
     }catch(e){return null;}
   }
   const canShare=!!navigator.share&&window.matchMedia&&matchMedia('(pointer:coarse)').matches;
