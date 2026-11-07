@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nissetrekning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2EE; --surface:#FFFFFF; --ink:#16271E; --muted:#5A6B61;
+  --spruce:#1F3B2D; --berry:#B3243B; --brass:#B8913A; --line:#CBD6CE;
+  --tag:#FBF7EC;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#101A14; --surface:#18261D; --ink:#E8EFEA; --muted:#9DB0A4;
+    --spruce:#7FB896; --berry:#E2566C; --brass:#D9B45E; --line:#2C3E33;
+    --tag:#22332A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101A14; --surface:#18261D; --ink:#E8EFEA; --muted:#9DB0A4;
+  --spruce:#7FB896; --berry:#E2566C; --brass:#D9B45E; --line:#2C3E33;
+  --tag:#22332A; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font:400 17px/1.5 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:480px;margin:0 auto;padding:28px 20px 40px}
+h1,h2{font-family:"Young Serif",Georgia,"Times New Roman",serif;font-weight:400;margin:0}
+h1{font-size:2.4rem;line-height:1.05;color:var(--spruce)}
+h2{font-size:1.7rem;line-height:1.15}
+p{margin:.5rem 0}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+.primary{background:var(--berry);color:#fff;font-weight:600;padding:15px 20px;width:100%;font-size:1.05rem}
+.primary:disabled{opacity:.4;cursor:not-allowed}
+.ghost{background:none;color:var(--muted);text-decoration:underline;padding:10px}
+.row{display:flex;gap:8px;margin:20px 0 12px}
+input{flex:1;min-width:0;font:inherit;padding:13px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.add{background:var(--spruce);color:var(--bg);font-weight:600;padding:0 18px}
+ul{list-style:none;padding:0;margin:0 0 24px}
+li.name{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px solid var(--line)}
+li.name button{background:none;color:var(--muted);font-size:1.4rem;line-height:1;padding:4px 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:22px 0 28px}
+.person{background:var(--surface);color:var(--ink);border:1.5px solid var(--line);padding:18px 12px;font-weight:600;text-align:center;min-height:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.person small{font-weight:400;color:var(--muted);font-size:.85rem}
+.person.seen{border-style:dashed;opacity:.65}
+.center{text-align:center}
+.stack>*+*{margin-top:14px}
+/* The gift tag */
+.tagwrap{perspective:900px;margin:32px auto;width:260px}
+.tag{position:relative;width:260px;height:300px;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,.7,.2,1)}
+.tag.open{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:16px 16px 22px 22px;clip-path:polygon(22% 0,78% 0,100% 16%,100% 100%,0 100%,0 16%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 22px 26px;text-align:center}
+.face::before{content:"";position:absolute;top:26px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--bg);box-shadow:0 0 0 4px var(--brass)}
+.front{background:var(--spruce);color:#fff}
+.front p{color:#fff;opacity:.85}
+.back{background:var(--tag);color:var(--ink);transform:rotateY(180deg);border:2px solid var(--brass)}
+.back .who{font-family:"Young Serif",Georgia,serif;font-size:2.3rem;line-height:1.1;color:var(--berry);margin:8px 0;word-break:break-word}
+.tapfront{background:none;color:#fff;width:100%;height:100%;position:absolute;inset:0;border-radius:inherit}
+.err{color:var(--berry);font-weight:600;min-height:1.5em}
+.secondary{background:var(--surface);color:var(--spruce);border:1.5px solid var(--spruce);font-weight:600;padding:14px 20px;width:100%;margin-bottom:8px}
+li.name button.share{font-size:.95rem;color:var(--spruce);font-weight:600;border:1.5px solid var(--line);padding:8px 14px}
+#linkFallback{width:100%;margin-bottom:16px}
+@media (prefers-reduced-motion:reduce){.tag{transition:none}}
+</style>
+</head>
+<body>
+<main>
+
+<!-- Oppsett -->
+<section id="setup">
+  <h1>Nissetrekning</h1>
+  <p class="muted">Skriv inn alle som er med. Etterpå sender dere telefonen rundt, og hver person ser bare hvem de selv skal kjøpe gave til.</p>
+  <div class="row">
+    <input id="nameInput" placeholder="Navn" autocomplete="off" enterkeyhint="done" aria-label="Navn">
+    <button class="add" id="addBtn">Legg til</button>
+  </div>
+  <p class="err" id="setupErr"></p>
+  <ul id="nameList"></ul>
+  <button class="primary" id="drawBtn" disabled>Trekk navn</button>
+  <p class="muted center" id="countHint">Legg til minst 3 personer.</p>
+</section>
+
+<!-- Oversikt -->
+<section id="board" class="hidden">
+  <h2>Hvem er du?</h2>
+  <p class="muted">Trykk på navnet ditt. Gi telefonen videre når du er ferdig.</p>
+  <div class="grid" id="grid"></div>
+  <p class="muted center" id="progress"></p>
+  <button class="secondary" id="linksBtn">Send hver sin lenke i stedet</button>
+  <div class="center"><button class="ghost" id="resetBtn">Start ny trekning</button></div>
+</section>
+
+<!-- Lenker -->
+<section id="links" class="hidden">
+  <h2>Send hver sin lenke</h2>
+  <p class="muted">Send lenken til riktig person, for eksempel på SMS. Ikke åpne andres lenker selv, for da ser du hvem de har trukket.</p>
+  <ul id="linkList"></ul>
+  <input id="linkFallback" class="hidden" readonly aria-label="Lenke">
+  <div class="center"><button class="ghost" id="linksBack">Tilbake</button></div>
+</section>
+
+<!-- Bekreft -->
+<section id="confirm" class="hidden center stack">
+  <h2 id="confirmTitle"></h2>
+  <p class="muted" id="confirmText">Pass på at ingen andre ser skjermen.</p>
+  <button class="primary" id="yesBtn">Ja, det er meg</button>
+  <button class="ghost" id="noBtn">Nei, gå tilbake</button>
+</section>
+
+<!-- Avsløring -->
+<section id="reveal" class="hidden center">
+  <div class="tagwrap">
+    <div class="tag" id="tag">
+      <div class="face front">
+        <p id="frontName"></p>
+        <h2>Trykk for å åpne</h2>
+        <button class="tapfront" id="openBtn" aria-label="Vis hvem du har trukket"></button>
+      </div>
+      <div class="face back">
+        <p>Du kjøper gave til</p>
+        <div class="who" id="who"></div>
+        <p class="muted">Husk navnet, og hold det hemmelig.</p>
+      </div>
+    </div>
+  </div>
+  <button class="primary hidden" id="doneBtn">Skjul og gi videre</button>
+</section>
+
+</main>
+<script>
+(function(){
+  const KEY='nissetrekning-v1';
+  let state={names:['Inge','Linn','Stine','Per Helge','Solbjørg','Kevin','Laila Celine','Trine','Truls','Lars Christian'],pairs:null,seen:{}};
+  try{const s=localStorage.getItem(KEY);if(s){const p=JSON.parse(s);if(p&&Array.isArray(p.names))state=p;}}catch(e){}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+
+  const $=id=>document.getElementById(id);
+  const screens=['setup','board','confirm','reveal','links'];
+  function show(id){screens.forEach(s=>$(s).classList.toggle('hidden',s!==id));window.scrollTo(0,0);}
+  let current=null;
+
+  function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+
+  // Oppsett
+  function renderSetup(){
+    $('nameList').innerHTML=state.names.map((n,i)=>`<li class="name"><span>${esc(n)}</span><button data-i="${i}" aria-label="Fjern ${esc(n)}">×</button></li>`).join('');
+    const ok=state.names.length>=3;
+    $('drawBtn').disabled=!ok;
+    $('countHint').textContent=ok?`${state.names.length} personer er med.`:`Legg til minst 3 personer.`;
+  }
+  function addName(){
+    const v=$('nameInput').value.trim();
+    $('setupErr').textContent='';
+    if(!v)return;
+    if(state.names.some(n=>n.toLowerCase()===v.toLowerCase())){$('setupErr').textContent=`${v} er allerede med. Bruk etternavn eller initial for å skille dem.`;return;}
+    state.names.push(v);$('nameInput').value='';save();renderSetup();$('nameInput').focus();
+  }
+  $('addBtn').onclick=addName;
+  $('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addName();}});
+  $('nameList').onclick=e=>{const b=e.target.closest('button');if(!b)return;state.names.splice(+b.dataset.i,1);save();renderSetup();};
+
+  // Trekning: Sattolos algoritme gir én lang ring, så ingen trekker seg selv
+  function draw(){
+    const a=state.names.slice();
+    const buf=new Uint32Array(1);
+    for(let i=a.length-1;i>0;i--){
+      crypto.getRandomValues(buf);const j=buf[0]%i;
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    // a er nå en syklisk permutasjon av rekkefølgen; hver giver får neste i ringen
+    const order=a, pairs={};
+    order.forEach((n,i)=>{pairs[n]=order[(i+1)%order.length];});
+    state.pairs=pairs;state.seen={};state.links=null;save();
+  }
+  $('drawBtn').onclick=()=>{draw();renderBoard();show('board');};
+
+  // Oversikt
+  function renderBoard(){
+    $('grid').innerHTML=state.names.map(n=>{
+      const s=state.seen[n];
+      return `<button class="person${s?' seen':''}" data-n="${esc(n)}">${esc(n)}${s?'<small>har sett</small>':''}</button>`;
+    }).join('');
+    const c=Object.keys(state.seen).length;
+    $('progress').textContent=c===state.names.length?'Alle har sett sitt navn. God jul!':`${c} av ${state.names.length} har sett sitt navn.`;
+  }
+  $('grid').onclick=e=>{
+    const b=e.target.closest('.person');if(!b)return;
+    current=b.dataset.n;
+    $('confirmTitle').textContent=`Er du ${current}?`;
+    $('confirmText').textContent=state.seen[current]
+      ?`${current} har allerede sett navnet sitt. Vis det igjen bare hvis det er deg.`
+      :'Pass på at ingen andre ser skjermen.';
+    show('confirm');
+  };
+  $('noBtn').onclick=()=>{current=null;show('board');};
+  $('yesBtn').onclick=()=>{
+    $('tag').classList.remove('open');
+    $('frontName').textContent=current;
+    $('who').textContent='';
+    $('doneBtn').classList.add('hidden');
+    show('reveal');
+  };
+  $('openBtn').onclick=()=>{
+    if(linkMode){$('who').textContent=linkRecipient;$('tag').classList.add('open');return;}
+    $('who').textContent=state.pairs[current];
+    $('tag').classList.add('open');
+    state.seen[current]=true;save();
+    setTimeout(()=>$('doneBtn').classList.remove('hidden'),500);
+  };
+  $('doneBtn').onclick=()=>{
+    $('who').textContent='';$('tag').classList.remove('open');
+    current=null;renderBoard();show('board');
+  };
+  $('resetBtn').onclick=()=>{
+    if(!confirm('Starte på nytt? Den nåværende trekningen slettes. Lenker som allerede er sendt, vil fortsatt vise den gamle trekningen.'))return;
+    state.pairs=null;state.seen={};state.links=null;save();renderSetup();show('setup');
+  };
+
+  // Personlige lenker
+  let linkMode=false,linkRecipient='';
+  const BASE=location.origin+location.pathname;
+  function enc(g,r){
+    const b=new TextEncoder().encode(g+'\n'+r);
+    const k=crypto.getRandomValues(new Uint8Array(4));
+    let h=Array.from(k).map(x=>x.toString(16).padStart(2,'0')).join('');
+    b.forEach((x,i)=>{h+=(x^k[i%4]^((i*37)&255)).toString(16).padStart(2,'0');});
+    return 'nisse-'+h;
+  }
+  function dec(s){
+    if(!/^nisse-[0-9a-f]{12,}$/.test(s)||s.length%2)return null;
+    const h=s.slice(6),k=[];
+    for(let i=0;i<8;i+=2)k.push(parseInt(h.substr(i,2),16));
+    const out=[];
+    for(let i=8,j=0;i<h.length;i+=2,j++)out.push(parseInt(h.substr(i,2),16)^k[j%4]^((j*37)&255));
+    try{const p=new TextDecoder('utf-8',{fatal:true}).decode(new Uint8Array(out)).split('\n');return p.length===2&&p[0]&&p[1]?{g:p[0],r:p[1]}:null;}catch(e){return null;}
+  }
+  function renderLinks(){
+    if(!state.links){state.links={};state.names.forEach(n=>{state.links[n]=BASE+'#'+enc(n,state.pairs[n]);});save();}
+    $('linkList').innerHTML=state.names.map(n=>`<li class="name"><span>${esc(n)}</span><button class="share" data-n="${esc(n)}">Del lenke</button></li>`).join('');
+    $('linkFallback').classList.add('hidden');
+  }
+  async function shareLink(name,url,btn){
+    try{if(navigator.share){await navigator.share({text:`Hei ${name}! Her ser du hvem du skal kjøpe julegave til: ${url}`});return;}}
+    catch(e){if(e&&e.name==='AbortError')return;}
+    try{await navigator.clipboard.writeText(url);btn.textContent='Kopiert';setTimeout(()=>{btn.textContent='Del lenke';},2000);return;}catch(e){}
+    const f=$('linkFallback');f.value=url;f.classList.remove('hidden');f.focus();f.select();
+  }
+  $('linksBtn').onclick=()=>{renderLinks();show('links');};
+  $('linksBack').onclick=()=>show('board');
+  $('linkList').onclick=e=>{const b=e.target.closest('button');if(b)shareLink(b.dataset.n,state.links[b.dataset.n],b);};
+  function openFromHash(){
+    const p=dec(location.hash.slice(1));
+    if(!p)return false;
+    linkMode=true;linkRecipient=p.r;
+    $('tag').classList.remove('open');
+    $('frontName').textContent=`Hei, ${p.g}!`;
+    $('who').textContent='';
+    $('doneBtn').classList.add('hidden');
+    show('reveal');
+    return true;
+  }
+  window.addEventListener('hashchange',openFromHash);
+
+  // Start
+  if(openFromHash()){}
+  else if(state.pairs&&state.names.every(n=>state.pairs[n])){renderBoard();show('board');}
+  else{state.pairs=null;renderSetup();show('setup');}
+})();
+</script>
+</body>
+</html>
